@@ -12,7 +12,7 @@
   },
   "keywords": [],
   "author": "CJ R. <cj@null.computer> (https://w3cj.now.sh)",
-    "repository": {
+  "repository": {
     "type": "git",
     "url": "https://github.com/ilkkamtk/ts_mongo_starter.git"
   },
@@ -23,6 +23,7 @@
     "express": "^4.19.2",
     "helmet": "^7.1.0",
     "mongoose": "^8.5.3",
+    "mongoose-type-url": "^2.1.0",
     "morgan": "^1.10.0"
   },
   "devDependencies": {
