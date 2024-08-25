@@ -140,3 +140,25 @@ export const getAnimalsFromArea = async (
     next(new CustomError((error as Error).message, 500));
   }
 };
+
+export const getAnimalsBySpecies = async (
+  req: Request<{species: string}>,
+  res: Response<DBMessageResponse>,
+  next: NextFunction,
+) => {
+  try {
+    const { species } = req.params
+    const animals = await animalModel.findBySpecies(species);
+
+    if (!animals.length) {
+      throw new CustomError('No animals found', 404)
+    }
+    res.status(200).json({
+      message: 'Animals retrieved',
+      data: animals
+    })
+
+  } catch (error) {
+    next(new CustomError((error as Error).message, 500));
+  }
+};

@@ -3,6 +3,8 @@ import {MessageResponse} from '../../types/Messages';
 import {Species} from '../../types/Species';
 import CustomError from '../../classes/CustomError';
 import speciesModel from '../models/species.model';
+import {Polygon} from 'geojson';
+import geojsonValidation from 'geojson-validation';
 
 type DBMessageResponse = MessageResponse & {
   data: Species | Species[];
@@ -102,7 +104,7 @@ export const deleteSpecies = async (
   }
 };
 
-export const getSpeciesFromArea = async (
+export const getSpeciesFromBox = async (
   req: Request,
   res: Response<DBMessageResponse>,
   next: NextFunction,
@@ -135,6 +137,39 @@ export const getSpeciesFromArea = async (
     res.status(200).json({
       message: 'Species from area',
       data: speciesInArea,
+    });
+  } catch (error) {
+    next(new CustomError((error as Error).message, 500));
+  }
+};
+
+export const findSpeciesInArea = async (
+  req: Request,
+  res: Response<DBMessageResponse>,
+  next: NextFunction
+) => {
+  try {
+    // Log the entire body to confirm structure
+    console.log('Request Body:', req.body);
+
+    // Access the polygon directly from req.body
+    const polygon = req.body;
+
+    // Log the polygon to check its structure
+    console.log('Extracted Polygon:', polygon);
+
+    if (!geojsonValidation.isPolygon(polygon)) {
+      throw new CustomError('Invalid GeoJSON polygon provided', 400);
+    }
+
+    const speciesInArea = await speciesModel.findByArea(polygon);
+    if (!speciesInArea || speciesInArea.length === 0) {
+      throw new CustomError('No species found in the specified area', 404);
+    }
+
+    res.status(200).json({
+      message: 'Species Retrieved',
+      data: speciesInArea
     });
   } catch (error) {
     next(new CustomError((error as Error).message, 500));

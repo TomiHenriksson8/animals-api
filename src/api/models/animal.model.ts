@@ -1,9 +1,9 @@
-import mongoose from 'mongoose';
-import {Animal} from '../../types/Animal';
+import mongoose, { Types } from 'mongoose';
+import { Animal, AnimalModel } from '../../types/Animal'; // Import the custom AnimalModel interface
 
 const animalSchema = new mongoose.Schema<Animal>({
-  animal_name: {type: String, required: true, minglength: 2},
-  birthdate: {type: Date},
+  animal_name: { type: String, required: true, minlength: 2 },
+  birthdate: { type: Date },
   species: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Species',
@@ -22,6 +22,12 @@ const animalSchema = new mongoose.Schema<Animal>({
   },
 });
 
-animalSchema.index({location: '2dsphere'});
+animalSchema.index({ location: '2dsphere' });
 
-export default mongoose.model<Animal>('Animal', animalSchema);
+animalSchema.statics.findBySpecies = async function (
+  speciesId: string,
+): Promise<Animal[]> {
+  return this.find({ species: speciesId }).exec();
+};
+
+export default mongoose.model<Animal, AnimalModel>('Animal', animalSchema);
