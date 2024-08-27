@@ -12,15 +12,12 @@ type DBMessageResponse = MessageResponse & {
 
 export const getSpecies = async (
   req: Request,
-  res: Response<DBMessageResponse>,
+  res: Response<Species[]>,
   next: NextFunction,
 ) => {
   try {
     const species = await speciesModel.find();
-    res.status(200).json({
-      message: 'Species retrieved',
-      data: species,
-    });
+    res.status(200).json(species);
   } catch (error) {
     next(new CustomError((error as Error).message, 500));
   }
@@ -28,7 +25,7 @@ export const getSpecies = async (
 
 export const getOneSpecies = async (
   req: Request<{id: string}>,
-  res: Response<DBMessageResponse>,
+  res: Response<Species>,
   next: NextFunction,
 ) => {
   try {
@@ -36,10 +33,7 @@ export const getOneSpecies = async (
     if (!species) {
       throw new CustomError('Species not found', 404);
     }
-    res.status(200).json({
-      message: 'Species retrieved',
-      data: species,
-    });
+    res.status(200).json(species);
   } catch (error) {
     next(new CustomError((error as Error).message, 500));
   }
@@ -53,8 +47,8 @@ export const postSpecies = async (
   try {
     const newSpecies = new speciesModel(req.body);
     const savedSpecies = await newSpecies.save();
-    res.status(200).json({
-      message: 'Species posted',
+    res.status(201).json({
+      message: 'Species created',
       data: savedSpecies,
     });
   } catch (error) {
@@ -105,8 +99,8 @@ export const deleteSpecies = async (
 };
 
 export const getSpeciesFromBox = async (
-  req: Request,
-  res: Response<DBMessageResponse>,
+  req: Request<{}, {}, {}, {topRight: string; bottomLeft: string}>,
+  res: Response<Species[]>,
   next: NextFunction,
 ) => {
   try {
@@ -114,30 +108,16 @@ export const getSpeciesFromBox = async (
     if (!topRight || !bottomLeft) {
       throw new CustomError('Please provide both topRight and bottomLeft', 400);
     }
-    const [topRightLat, topRightLon] = (topRight as string)
-      .split(',')
-      .map(Number);
-    const [bottomLeftLat, bottomLeftLon] = (bottomLeft as string)
-      .split(',')
-      .map(Number);
-
-    const boundingBox = [
-      [bottomLeftLon, bottomLeftLat],
-      [topRightLon, topRightLat],
-    ];
 
     const speciesInArea = await speciesModel.find({
       location: {
         $geoWithin: {
-          $box: boundingBox,
+          $box: [topRight.split(','), bottomLeft.split(',')],
         },
       },
     });
 
-    res.status(200).json({
-      message: 'Species from area',
-      data: speciesInArea,
-    });
+    res.status(200).json(speciesInArea);
   } catch (error) {
     next(new CustomError((error as Error).message, 500));
   }
@@ -145,33 +125,27 @@ export const getSpeciesFromBox = async (
 
 export const findSpeciesInArea = async (
   req: Request,
-  res: Response<DBMessageResponse>,
+  res: Response<Species[]>,
   next: NextFunction
 ) => {
   try {
-    // Log the entire body to confirm structure
+    const polygon = req.body.polygon || req.body;
+
     console.log('Request Body:', req.body);
-
-    // Access the polygon directly from req.body
-    const polygon = req.body;
-
-    // Log the polygon to check its structure
     console.log('Extracted Polygon:', polygon);
 
-    if (!geojsonValidation.isPolygon(polygon)) {
+    if (!polygon || !geojsonValidation.isPolygon(polygon)) {
       throw new CustomError('Invalid GeoJSON polygon provided', 400);
     }
 
     const speciesInArea = await speciesModel.findByArea(polygon);
+
     if (!speciesInArea || speciesInArea.length === 0) {
       throw new CustomError('No species found in the specified area', 404);
     }
-
-    res.status(200).json({
-      message: 'Species Retrieved',
-      data: speciesInArea
-    });
+    res.status(200).json(speciesInArea);
   } catch (error) {
+    console.error('Error in findSpeciesInArea:', error);
     next(new CustomError((error as Error).message, 500));
   }
 };

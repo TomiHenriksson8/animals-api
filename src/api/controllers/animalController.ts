@@ -10,15 +10,19 @@ type DBMessageResponse = MessageResponse & {
 
 export const getAnimals = async (
   req: Request,
-  res: Response<DBMessageResponse>,
+  res: Response<Animal[]>,
   next: NextFunction,
 ) => {
   try {
-    const animals = await animalModel.find();
-    res.status(200).json({
-      message: 'Animals retrieved',
-      data: animals,
-    });
+    const animals = await animalModel
+      .find()
+      .select('-__v')
+      .populate({
+        path: 'species',
+        select: 'species_name category',
+        populate: {path: 'category', select: 'category_name'},
+      });
+    res.status(200).json(animals);
   } catch (error) {
     next(new CustomError((error as Error).message, 500));
   }
@@ -26,18 +30,22 @@ export const getAnimals = async (
 
 export const getAnimal = async (
   req: Request<{id: string}>,
-  res: Response<DBMessageResponse>,
+  res: Response<Animal>,
   next: NextFunction,
 ) => {
   try {
-    const animal = await animalModel.findById(req.body.id);
-    if (!animal) {
-      throw new CustomError('Animal not found', 404);
+    const animals = await animalModel
+      .findById(req.params.id)
+      .select('-__v')
+      .populate({
+        path: 'species',
+        select: 'species_name category',
+        populate: {path: 'category', select: 'category_name'},
+      });
+    if (!animals) {
+      return res.status(404);
     }
-    res.status(200).json({
-      message: 'Animal retrieved',
-      data: animal,
-    });
+    res.status(200).json(animals);
   } catch (error) {
     next(new CustomError((error as Error).message, 500));
   }
@@ -51,7 +59,7 @@ export const postAnimal = async (
   try {
     const newAnimal = new animalModel(req.body);
     const savedAnimal = await newAnimal.save();
-    res.status(200).json({
+    res.status(201).json({
       message: 'Animal posted',
       data: savedAnimal,
     });
@@ -103,8 +111,8 @@ export const deleteAnimal = async (
 };
 
 export const getAnimalsFromArea = async (
-  req: Request,
-  res: Response<DBMessageResponse>,
+  req: Request<{}, {}, {}, {topRight: string; bottomLeft: string}>,
+  res: Response<Animal[]>,
   next: NextFunction,
 ) => {
   try {
@@ -112,30 +120,22 @@ export const getAnimalsFromArea = async (
     if (!topRight || !bottomLeft) {
       throw new CustomError('Please provide both topRight and bottomLeft', 400);
     }
-    const [topRightLat, topRightLon] = (topRight as string)
-      .split(',')
-      .map(Number);
-    const [bottomLeftLat, bottomLeftLon] = (bottomLeft as string)
-      .split(',')
-      .map(Number);
 
-    const boundingBox = [
-      [bottomLeftLon, bottomLeftLat],
-      [topRightLon, topRightLat],
-    ];
-
-    const animalsInArea = await animalModel.find({
-      location: {
-        $geoWithin: {
-          $box: boundingBox,
+    const animalsInArea = await animalModel
+      .find({
+        location: {
+          $geoWithin: {
+            $box: [topRight.split(','), bottomLeft.split(',')],
+          },
         },
-      },
-    });
-
-    res.status(200).json({
-      message: 'Animals in area',
-      data: animalsInArea,
-    });
+      })
+      .select('-__v')
+      .populate({
+        path: 'species',
+        select: 'species_name category',
+        populate: {path: 'category', select: 'category_name'},
+      });
+    res.status(200).json(animalsInArea);
   } catch (error) {
     next(new CustomError((error as Error).message, 500));
   }
@@ -143,21 +143,13 @@ export const getAnimalsFromArea = async (
 
 export const getAnimalsBySpecies = async (
   req: Request<{species: string}>,
-  res: Response<DBMessageResponse>,
+  res: Response<Animal[]>,
   next: NextFunction,
 ) => {
   try {
-    const { species } = req.params
+    const {species} = req.params;
     const animals = await animalModel.findBySpecies(species);
-
-    if (!animals.length) {
-      throw new CustomError('No animals found', 404)
-    }
-    res.status(200).json({
-      message: 'Animals retrieved',
-      data: animals
-    })
-
+    res.status(200).json(animals);
   } catch (error) {
     next(new CustomError((error as Error).message, 500));
   }

@@ -1,9 +1,10 @@
 import express from 'express';
 import { deleteSpecies, findSpeciesInArea, getOneSpecies, getSpecies, getSpeciesFromBox, postSpecies, updateSpecies } from '../controllers/speciesController';
+import { addImageToSpecies } from '../../middlewares';
 
 const router = express.Router();
 
-router.route('/').get(getSpecies).post(postSpecies);
+router.route('/').get(getSpecies).post(addImageToSpecies, postSpecies);
 
 router.get('/location', getSpeciesFromBox)
 

@@ -30,6 +30,12 @@ speciesModel.statics.findByArea = async function (
 ): Promise<Species[]> {
   console.log('Polygon in Model:', JSON.stringify(polygon, null, 2));
 
+
+  if (!polygon.coordinates || polygon.coordinates.length === 0) {
+    throw new Error('Invalid coordinates for polygon');
+  }
+
+
   return this.find({
     location: {
       $geoWithin: {
@@ -39,7 +45,10 @@ speciesModel.statics.findByArea = async function (
         },
       },
     },
-  }).exec();
+  })
+    .select('_id species_name category location')
+    .exec();
 };
+
 
 export default mongoose.model<Species, SpeciesModel>('Species', speciesModel);

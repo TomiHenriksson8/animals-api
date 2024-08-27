@@ -10,15 +10,12 @@ type DBMessageResponse = MessageResponse & {
 
 export const getCategories = async (
   req: Request,
-  res: Response<DBMessageResponse>,
+  res: Response<Category[]>,
   next: NextFunction,
 ) => {
   try {
     const categories = await categoryModel.find();
-    res.status(200).json({
-      message: 'Categories retrieved',
-      data: categories,
-    });
+    res.status(200).json(categories);
   } catch (error) {
     next(new CustomError((error as Error).message, 500));
   }
@@ -32,8 +29,8 @@ export const postCategory = async (
   try {
     const newCategory = new categoryModel(req.body);
     const savedCategory = await newCategory.save();
-    res.status(200).json({
-      message: 'Category posted',
+    res.status(201).json({
+      message: 'Category created',
       data: savedCategory,
     });
   } catch (error) {
@@ -43,7 +40,7 @@ export const postCategory = async (
 
 export const getCategory = async (
   req: Request<{id: string}>,
-  res: Response<DBMessageResponse>,
+  res: Response<Category>,
   next: NextFunction,
 ) => {
   try {
@@ -51,10 +48,7 @@ export const getCategory = async (
     if (!category) {
       throw new CustomError('Category not found', 404);
     }
-    res.status(200).json({
-      message: 'Category retrieved',
-      data: category
-    })
+    res.status(200).json(category)
   } catch (error) {
     next(new CustomError((error as Error).message, 500));
   }
